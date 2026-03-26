@@ -6,7 +6,7 @@ test.describe('Practice Automation', () => {
     await page.waitForLoadState('domcontentloaded');
   });
 
-  test('should display the correct page title on the home page', async ({ page }) => {
+  test('should display the correct page title on the home page:', async ({ page }) => {
     await page.screenshot({
       path: 'test-results/title_validation.png',
       fullPage: true,
