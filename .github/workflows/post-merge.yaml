@@ -1,0 +1,74 @@
+name: Post-Merge
+
+on:
+  pull_request:
+    branches:
+      - testing
+    types:
+      - closed
+
+jobs:
+  release:
+    # Only run when the PR was actually merged (not just closed/abandoned)
+    if: github.event.pull_request.merged == true
+    name: Bump Version & Clean Up Branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to push the version bump commit
+      pull-requests: write
+
+    steps:
+      - name: Checkout testing branch
+        uses: actions/checkout@v4
+        with:
+          ref: testing
+          # Use a PAT or the default GITHUB_TOKEN.
+          # GITHUB_TOKEN is enough unless branch protection requires a PAT.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0 # Full history needed for git operations
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          # npm version patch updates package.json and creates a git commit + tag
+          NEW_VERSION=$(npm version patch --no-git-tag-version)
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push version bump
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore(ci): bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
+          git push origin testing
+
+      # ── Delete the source branch that opened the PR ──────────────────────
+      - name: Delete merged branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+
+          # Guard: never delete main, master, testing, or develop
+          PROTECTED="main master testing develop"
+          for PROTECTED_BRANCH in $PROTECTED; do
+            if [ "$BRANCH" = "$PROTECTED_BRANCH" ]; then
+              echo "Branch '$BRANCH' is protected — skipping deletion."
+              exit 0
+            fi
+          done
+
+          echo "Deleting branch: $BRANCH"
+          gh api \
+            --method DELETE \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/git/refs/heads/$BRANCH"

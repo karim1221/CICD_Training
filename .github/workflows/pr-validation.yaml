@@ -29,4 +29,12 @@ jobs:
         run: npm run lint
 
       - name: TypeScript type check
-        run: npm run type-check
+        run: npm run type-check 
+
+      - name: Post PR comment
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+            gh pr comment ${{ github.event.pull_request.number }} \
+              --repo ${{ github.repository }} \
+              --body "⚠️ **Before merging**, please manually run the [Testing workflow](https://github.com/karim1221/CICD_Training/actions/workflows/branch-test.yml) and confirm it passes."
