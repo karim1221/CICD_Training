@@ -7,9 +7,9 @@ test.describe('Practice Automation', () => {
   });
 
   test('should display the correct page title on the home page', async ({ page }) => {
-    await page.screenshot({
-      path: 'test-results/title_validation.png',
-      fullPage: true,
+    await test.info().attach('title_validation', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
     });
     await expect(page).toHaveTitle('Test Login | Practice Test Automation');
   });
@@ -21,9 +21,9 @@ test.describe('Practice Automation', () => {
     await password.fill('Password123');
     await page.getByRole('button', { name: 'Submit' }).click();
     const successMessage = page.getByRole('heading', { name: expected });
-    await page.screenshot({
-      path: 'test-results/login_validation.png',
-      fullPage: true,
+    await test.info().attach('login_validation', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
     });
     await expect(successMessage).toHaveText(expected);
   });
